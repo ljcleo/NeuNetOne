@@ -127,3 +127,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Training input & output
+/data/
+/log/
+/img/
+/model/
+/out/
+
+# Report source file
+doc/
+
+# VSCode setings
+.vscode/
