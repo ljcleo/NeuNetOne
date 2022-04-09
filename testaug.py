@@ -5,12 +5,11 @@ import torch
 
 from src.data import CIFAR100, make_display_loader
 from src.logger import make_logger
-from src.util import fix_seed, get_path, init_device
+from src.util import get_path, init_device
 from src.visualize import visualize_augmentation
 
 if __name__ == '__main__':
-    device: torch.device = init_device(False)
-    fix_seed(19260817)
+    device: torch.device = init_device(19260817, False)
     root_path: Path = Path('.')
     data_path: Path = get_path(root_path, 'data')
     img_path: Path = get_path(root_path, 'img')
