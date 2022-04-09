@@ -6,11 +6,11 @@ from src.util import FTType
 
 
 class ASAM(Optimizer):
-    def __init__(self, params, lr: float, rho: float = 1, eta: float = 0.01, dampening: float = 0.9,
-                 weight_decay: float = 0.0005, nesterov: bool = False, **kwargs) -> None:
+    def __init__(self, params, lr: float, rho: float = 1, eta: float = 0.01,
+                 weight_decay: float = 0.0005, **kwargs) -> None:
         super().__init__(params, dict(rho=rho, eta=eta, **kwargs))
-        self.base_optimizer: SGD = SGD(self.param_groups, lr=lr, dampening=dampening,
-                                       weight_decay=weight_decay, nesterov=nesterov, **kwargs)
+        self.base_optimizer: SGD = SGD(self.param_groups, lr=lr, weight_decay=weight_decay,
+                                       **kwargs)
         self.param_groups: list[dict] = self.base_optimizer.param_groups
 
     @torch.no_grad()

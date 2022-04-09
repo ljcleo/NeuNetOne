@@ -2,12 +2,13 @@ from os import environ
 from pathlib import Path
 from random import seed
 from subprocess import run
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
 from torch import cuda
 from torch.backends import cudnn
+from yaml import safe_load
 
 FTType = torch.FloatTensor
 LTType = torch.LongTensor
@@ -55,3 +56,8 @@ def get_path(root_path: Path, sub_dir: str, name: Optional[str] = None) -> Path:
 
     result.mkdir(parents=True, exist_ok=True)
     return result
+
+
+def get_config(root_path: Path, name: str) -> dict[str, Any]:
+    with (get_path(root_path, 'config') / f'{name}.yaml').open('r', encoding='utf8') as f:
+        return safe_load(f)

@@ -16,7 +16,7 @@ def init_weight(module: nn.Module) -> None:
 
 
 class BottleNeck(nn.Module):
-    def __init__(self, in_channel: int, n_group: int, mid_channel: int, stride: int,
+    def __init__(self, in_channel: int, stride: int, n_group: int, mid_channel: int,
                  out_channel: int) -> None:
         super().__init__()
         group_channel: int = n_group * mid_channel
@@ -54,13 +54,13 @@ class BottleNeck(nn.Module):
 
 
 class ConvStage(nn.Module):
-    def __init__(self, in_channel: int, n_block: int, n_group: int, mid_channel: int, stride: int,
+    def __init__(self, in_channel: int, stride: int, n_block: int, n_group: int, mid_channel: int,
                  out_channel: int) -> None:
         super().__init__()
 
-        blocks: list[BottleNeck] = [BottleNeck(in_channel, n_group, mid_channel, stride,
+        blocks: list[BottleNeck] = [BottleNeck(in_channel, stride, n_group, mid_channel,
                                                out_channel)]
-        blocks.extend([BottleNeck(out_channel, n_group, mid_channel, 1, out_channel)
+        blocks.extend([BottleNeck(out_channel, 1, n_group, mid_channel, out_channel)
                        for _ in range(1, n_block)])
 
         self.blocks: nn.Sequential = nn.Sequential(*blocks)
@@ -70,7 +70,7 @@ class ConvStage(nn.Module):
 
 
 class ResNeXt(nn.Module):
-    def __init__(self, in_channel: int, n_class: int, stages: list[tuple[int, int, int, int]],
+    def __init__(self, in_channel: int, n_class: int, stages: list[dict[str, int]],
                  devices: list[torch.device] | None = None, split_size: int | None = None) -> None:
         super().__init__()
         if devices is None:
@@ -89,11 +89,9 @@ class ResNeXt(nn.Module):
         in_channel = out_channel
         stride: int = 1
 
-        for n_block, n_group, mid_channel, out_channel in stages:
-            self.stages.append(ConvStage(in_channel, n_block, n_group, mid_channel, stride,
-                                         out_channel))
-
-            in_channel = out_channel
+        for stage in stages:
+            self.stages.append(ConvStage(in_channel, stride, **stage))
+            in_channel = stage['out_channel']
             stride = 2
 
         self.stages.append(nn.Sequential(

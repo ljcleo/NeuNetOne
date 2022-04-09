@@ -1,0 +1,27 @@
+name: resnext29
+stages:
+  - n_block: 3
+    n_group: 32
+    mid_channel: 4
+    out_channel: 256
+  - n_block: 3
+    n_group: 32
+    mid_channel: 8
+    out_channel: 512
+  - n_block: 3
+    n_group: 32
+    mid_channel: 16
+    out_channel: 1024
+batch:
+  size: 128
+  split: 32
+optimizer:
+  learning_rate: 0.1
+  asam_rho: 1
+  asam_eta: 0.01
+  weight_decay: 0.0005
+scheduler:
+  type: cosine
+  t_0: 10
+  t_mult: 2
+max_epoch: 200

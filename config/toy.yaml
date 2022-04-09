@@ -1,0 +1,24 @@
+name: toy
+stages:
+  - n_block: 2
+    n_group: 8
+    mid_channel: 4
+    out_channel: 64
+  - n_block: 2
+    n_group: 8
+    mid_channel: 8
+    out_channel: 128
+batch:
+  size: 256
+  split: 64
+optimizer:
+  lr: 0.01
+  rho: 1
+  eta: 0.01
+  weight_decay: 0.0005
+scheduler:
+  type: cosine
+  params:
+    t_0: 1
+    t_mult: 2
+max_epoch: 10
