@@ -1,6 +1,6 @@
 from pathlib import Path
 from pickle import load
-from typing import Any, Callable
+from typing import Any
 
 import torch
 import torchvision.transforms as tf
@@ -11,15 +11,16 @@ from src.util import BatchType, FTType
 
 
 class CIFAR100(Dataset):
-    def __init__(self, path: Path, train: bool, device: torch.device) -> None:
+    def __init__(self, path: Path, train: bool, data_sec: float, device: torch.device) -> None:
         super().__init__()
         with (path / ('train' if train else 'test')).open('rb') as f:
             data: dict[bytes, Any] = load(f, encoding='bytes')
 
         self._images: FTType = torch.tensor(data[b'data'], device=device).view(-1, 3, 32, 32) / 255
-        self._data_size: int = self._images.size(0)
+        self._data_size: int = round(self._images.size(0) * data_sec)
+        self._images = self._images[:self._data_size]
         self._labels: FTType = torch.zeros((self._data_size, 100), device=device)
-        self._labels[list(range(self._data_size)), data[b'fine_labels']] = 1
+        self._labels[list(range(self._data_size)), data[b'fine_labels'][:self._data_size]] = 1
 
     @staticmethod
     def get_label_names(path: Path) -> list[str]:
@@ -34,48 +35,42 @@ class CIFAR100(Dataset):
         return self._images[index], self._labels[index]
 
 
-def make_collate(transform: tf.Compose) -> Callable[[list[BatchType]], BatchType]:
-    return lambda batch: (transform(torch.stack([x[0] for x in batch])),
-                          torch.stack([x[1] for x in batch]))
+normalize: tf.Normalize = tf.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+
+train_transform: tf.Compose = tf.Compose([
+    tf.RandomCrop(32, padding=4), tf.RandomHorizontalFlip(), normalize
+])
+
+test_transform: tf.Compose = tf.Compose([
+    tf.Pad(4), tf.TenCrop(32), tf.Lambda(lambda x: torch.stack([normalize(y) for y in x]))
+])
 
 
-def make_loaders(path: Path, train_ratio: float, batch_size: tuple[int, int, int],
-                 num_workers: int, pin_memory: bool,
-                 device: torch.device) -> tuple[DataLoader, DataLoader, DataLoader]:
-    raw_train_set: CIFAR100 = CIFAR100(path, True, device)
-    test_set: CIFAR100 = CIFAR100(path, False, device)
+def train_collate(batch: list[BatchType]) -> BatchType:
+    return train_transform(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
 
-    train_size: int = round(len(raw_train_set) * train_ratio)
-    valid_size: int = len(raw_train_set) - train_size
+
+def test_collate(batch: list[BatchType]) -> BatchType:
+    return test_transform(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
+
+
+def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_sec: float = 0.1,
+                 batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
+    raw_train_set: CIFAR100 = CIFAR100(path, True, data_sec, device)
+    test_set: CIFAR100 = CIFAR100(path, False, data_sec, device)
+
+    valid_size: int = round(len(raw_train_set) * valid_sec)
+    train_size: int = len(raw_train_set) - valid_size
     train_set: Dataset
     valid_set: Dataset
     train_set, valid_set = random_split(raw_train_set, [train_size, valid_size])
 
-    normalize: tf.Normalize = tf.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-
-    train_transform: tf.Compose = tf.Compose([
-        tf.RandomCrop(32, padding=4), tf.RandomHorizontalFlip(), normalize
-    ])
-
-    test_transform: tf.Compose = tf.Compose([
-        tf.Pad(4), tf.TenCrop(32), tf.Lambda(lambda x: torch.stack([normalize(y) for y in x]))
-    ])
-
-    train_loader: DataLoader = DataLoader(train_set, batch_size=batch_size[0], shuffle=True,
-                                          num_workers=num_workers, pin_memory=pin_memory,
-                                          collate_fn=make_collate(train_transform))
-
-    valid_loader: DataLoader = DataLoader(valid_set, batch_size=batch_size[1], shuffle=False,
-                                          num_workers=num_workers, pin_memory=pin_memory,
-                                          collate_fn=make_collate(test_transform))
-
-    test_loader: DataLoader = DataLoader(test_set, batch_size=batch_size[2], shuffle=False,
-                                         num_workers=num_workers, pin_memory=pin_memory,
-                                         collate_fn=make_collate(test_transform))
-
-    return train_loader, valid_loader, test_loader
+    return tuple(DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
+                 for dataset, shuffle, collate_fn, in ((train_set, True, train_collate),
+                                                       (valid_set, False, test_collate),
+                                                       (test_set, False, test_collate)))
 
 
-def make_display_loader(path: Path, train: bool, n_sample: int) -> DataLoader:
-    dataset: CIFAR100 = CIFAR100(path, train, torch.device('cpu'))
+def make_display_loader(path: Path, train: bool, n_sample: int, device: torch.device) -> DataLoader:
+    dataset: CIFAR100 = CIFAR100(path, train, 0.1, device)
     return DataLoader(dataset, batch_size=n_sample)

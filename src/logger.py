@@ -1,7 +1,7 @@
 from logging import FileHandler, Formatter, Logger, StreamHandler, getLogger
 from pathlib import Path
 
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from src.util import get_path
 

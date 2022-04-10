@@ -1,7 +1,7 @@
 from typing import Optional
 
 import torch
-from torch.distributions.beta import Beta
+from torch.distributions.uniform import Uniform
 
 from src.util import BatchType, FTType, LTType
 
@@ -11,7 +11,8 @@ class BatchAugmentation:
         self.cut: bool = cut
         self.mix: bool = mix
 
-    def augment(self, batch: BatchType, shuffled_batch: Optional[BatchType] = None) -> BatchType:
+    def forward(self, batch: BatchType, shuffled_batch: Optional[BatchType] = None,
+                ratio_range: tuple[float, float] = (0, 1)) -> BatchType:
         input_a: FTType
         output_a: FTType
         input_a, output_a = batch
@@ -26,7 +27,7 @@ class BatchAugmentation:
             else:
                 input_b, output_b = shuffled_batch
 
-            ratio: FTType = Beta(1, 1).sample((batch_size, )).to(input_a.device)
+            ratio: FTType = Uniform(*ratio_range).sample((batch_size, )).to(input_a.device)
 
             if self.cut:
                 lower: LTType
@@ -60,17 +61,15 @@ class BatchAugmentation:
         batch_size: int = batch[0].size(0)
         base_index: LTType = torch.arange(batch_size, dtype=torch.long)
 
-        while force_different:
+        while True:
             shuffle_index: LTType = torch.randperm(batch_size, dtype=torch.long)
-            if not torch.any(base_index == shuffle_index):
-                break
-
-        return batch[0][shuffle_index], batch[1][shuffle_index]
+            if not (force_different and torch.any(base_index == shuffle_index)):
+                return batch[0][shuffle_index], batch[1][shuffle_index]
 
     @staticmethod
     def _generate_boundary(batch_size: int, offset: FTType) -> tuple[LTType, LTType]:
         offset = offset.view(-1, 1)
-        center: LTType = torch.randint(0, 32, (batch_size, 2))
+        center: LTType = torch.randint(0, 32, (batch_size, 2), device=offset.device)
         lower: LTType = torch.round(torch.clip(center - offset, min=0)).to(torch.long)
         upper: LTType = torch.round(torch.clip(center + offset, max=32)).to(torch.long)
         return lower, upper

@@ -13,9 +13,9 @@ stages:
     c_mid: 16
     c_out: 1024
 data:
-  data_sec: 1
+  data_sec: 0.1
   valid_sec: 0.1
-  batch_size: 128
+  batch_size: 16
 optimizer:
   lr: 0.1
   rho: 1
@@ -26,4 +26,4 @@ scheduler:
   params:
     T_0: 10
     T_mult: 2
-max_epoch: 200
+max_epoch: 3
