@@ -26,4 +26,9 @@ scheduler:
   params:
     T_0: 10
     T_mult: 2
+augmentation:
+  - baseline
+  - mixup
+  - cutout
+  - cutmix
 max_epoch: 200

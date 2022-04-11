@@ -30,7 +30,7 @@ if __name__ == '__main__':
     config: dict[str, Any] = get_config(root_path, config_name)
 
     compare_result: list[tuple[str, int, int]] = train_all_models(
-        config, use_gpu, device, f'{config_name}-{config["name"]}', root_path
+        config, device, f'{config_name}-{config["name"]}', root_path
     )
 
     with (get_path(root_path, 'out', config_name) / f'{config_name}.csv').open('w', encoding='utf8',

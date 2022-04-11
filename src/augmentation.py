@@ -6,6 +6,14 @@ from torch.distributions.uniform import Uniform
 from src.util import BatchType, FTType, LTType
 
 
+augmentation_param: dict[str, tuple[int, int]] = {
+    'baseline': (False, False),
+    'mixup': (False, True),
+    'cutout': (True, False),
+    'cutmix': (True, True)
+}
+
+
 class BatchAugmentation:
     def __init__(self, cut: bool, mix: bool) -> None:
         self.cut: bool = cut
