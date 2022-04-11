@@ -39,8 +39,8 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
                         BatchAugmentation(*augmentation_param[method]), config,
                         devices[i % len(devices)], result_dict, f'{name}-{method}', root_path
                     ), callback=lambda x: logger.info(
-                        f'Augmentation Method: {method} Test Loss: {x[0]:.4f} ' +
-                        f'Test Accuracy: {x[1]:.4f} Elapsed Time: {x[2]:.2f}s'
+                        f'Augmentation Method: {x[0]} Test Loss: {x[1]:.4f} ' +
+                        f'Test Accuracy: {x[2]:.4f} Elapsed Time: {x[3]:.2f}s'
                     ))
 
                 pool.close()
@@ -58,7 +58,7 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
 
 def train_model(augmentation: BatchAugmentation, config: dict[str, Any], device: torch.device,
                 result_dict: dict[str, tuple[float, float, float]], name: str,
-                root_path: Path) -> tuple[float, float, float]:
+                root_path: Path) -> tuple[str, float, float, float]:
     process_start: float = time()
     logger: Logger = make_logger(name, root_path, False)
     writer: SummaryWriter = make_tensorboard(name, root_path)
@@ -80,5 +80,6 @@ def train_model(augmentation: BatchAugmentation, config: dict[str, Any], device:
 
     torch.save(model.state_dict, get_path(root_path, 'model', name) / f'{name}.pt')
     result: tuple[float, float, float] = train_result + (time() - process_start, )
-    result_dict[name.split('-')[-1]] = result
-    return result
+    method: str = name.split('-')[-1]
+    result_dict[method] = result
+    return (method, ) + result
