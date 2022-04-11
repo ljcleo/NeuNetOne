@@ -3,7 +3,7 @@ from time import time
 from typing import Any, Optional
 
 import torch
-from torch.nn import CrossEntropyLoss
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -18,7 +18,6 @@ class Trainer:
     def __init__(self, model: ResNeXt, optim_params: dict[str, Any],
                  sched_params: Optional[dict[str, Any]]) -> None:
         self.model: ResNeXt = model
-        self.loss: CrossEntropyLoss = CrossEntropyLoss()
         self.optimizer: ASAM = ASAM(self.model.parameters(), **optim_params)
         self.scheduler: Optional[CosineAnnealingWarmRestarts] = \
             None if sched_params['type'] is None \
@@ -97,13 +96,13 @@ class Trainer:
             if any(check_inf_nan(pred)):
                 raise ValueError(f'found inf or nan after prediction: {check_inf_nan(pred)}')
 
-            loss: FTType = self.loss.forward(pred, labels)
+            loss: FTType = self._loss(pred, labels)
             if any(check_inf_nan(loss)):
                 raise ValueError(f'found inf or nan after loss calculation: {check_inf_nan(loss)}')
 
             loss.backward()
             self.optimizer.step_1(zero_grad=True)
-            self.loss.forward(self.model.forward(images), labels).backward()
+            self._loss(self.model.forward(images), labels).backward()
             self.optimizer.step_2(zero_grad=True)
 
             index += 1
@@ -142,8 +141,12 @@ class Trainer:
 
             cat_pred: FTType = torch.cat(all_pred)
             cat_label: FTType = torch.cat(all_label)
-            loss: float = self.loss.forward(cat_pred, cat_label).item()
+            loss: float = self._loss(cat_pred, cat_label).item()
             acc: float = torch.sum(cat_pred.argmax(dim=1) ==
                                    cat_label.argmax(dim=1)).item() / cat_label.size(0)
 
         return loss, acc
+
+    @staticmethod
+    def _loss(pred: FTType, labels: FTType) -> FTType:
+        return -torch.sum(F.log_softmax(pred, dim=-1) * labels, dim=-1).mean()
