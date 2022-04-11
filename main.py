@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from csv import writer
 from logging import Logger
+from multiprocessing import set_start_method
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from src.task import train_all_models
 
 
 if __name__ == '__main__':
+    set_start_method('spawn')
     root_path: Path = Path('.')
 
     parser: ArgumentParser = ArgumentParser(description='CIFAR-100 ResNeXt model training')
