@@ -4,15 +4,37 @@ from pathlib import Path
 
 import torch
 
+from src.augmentation import BatchAugmentation
 from src.data import CIFAR100, make_display_loader
+from src.init import init_device
 from src.logger import make_logger
-from src.util import get_path, init_device
+from src.util import BatchType, get_path
 from src.visualize import visualize_augmentation
+
+
+def visualize(root_path: Path, train: bool, device: torch.device, logger: Logger) -> None:
+    logger.info(f'Visualizing {"training" if train else "test"} set ...')
+    data_path: Path = get_path(root_path, 'data')
+    img_path: Path = get_path(root_path, 'img')
+    batch: BatchType
+
+    for batch in make_display_loader(data_path, train, 16, device):
+        shuffled_batch: BatchType = BatchAugmentation.shuffle_batch(batch, True)
+
+        visualize_augmentation([
+            (method, BatchAugmentation(cut, mix).forward(
+                batch, shuffled_batch=shuffled_batch, ratio_range=(0.4, 0.6)
+            )) for method, cut, mix in (
+                ('Baseline', False, False), ('Mixup', False,True),
+                ('Cutout', True, False), ('Cutmix', True, True)
+            )
+        ], 3, CIFAR100.get_label_names(data_path), 'training', img_path)
+
+        break
+
 
 if __name__ == '__main__':
     root_path: Path = Path('.')
-    data_path: Path = get_path(root_path, 'data')
-    img_path: Path = get_path(root_path, 'img')
 
     parser: ArgumentParser = ArgumentParser(description='CIFAR-100 data augmentation test')
     parser.add_argument('-g', '--gpu', action='store_true', help='enable GPU support')
@@ -20,14 +42,7 @@ if __name__ == '__main__':
 
     logger: Logger = make_logger('augmentation', root_path, True, direct=True)
     logger.info('Start visualizing data augmentation samples ...')
-    label_names: list[str] = CIFAR100.get_label_names(data_path)
 
-    logger.info('Visualizing training set ...')
-    visualize_augmentation(make_display_loader(data_path, True, 16, device), 3, label_names,
-                           'training', img_path)
-
-    logger.info('Visualizing test set ...')
-    visualize_augmentation(make_display_loader(data_path, False, 16, device), 3, label_names,
-                           'test', img_path)
-
+    for train in (True, False):
+        visualize(root_path, train, device, logger)
     logger.info('Finished visualizing data augmentation samples.')

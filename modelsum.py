@@ -7,9 +7,10 @@ from typing import Any
 import torch
 from torchinfo import summary
 
+from src.init import init_device
 from src.logger import make_logger
 from src.model import ResNeXt
-from src.util import FTType, get_config, init_device
+from src.util import FTType, get_config
 
 
 def split_test(stages: list[dict[str, int]], batch_size: int, repeat: int,

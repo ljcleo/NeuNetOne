@@ -8,8 +8,9 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from src.augmentation import BatchAugmentation
+from src.board import make_tensorboard
 from src.data import make_loaders
-from src.logger import make_logger, make_tensorboard
+from src.logger import make_logger
 from src.model import ResNeXt
 from src.trainer import Trainer
 from src.util import get_path

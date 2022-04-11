@@ -6,8 +6,9 @@ from typing import Any
 
 import torch
 
+from src.init import init_device
 from src.logger import make_logger
-from src.util import get_config, get_path, init_device
+from src.util import get_config, get_path
 from src.task import train_all_models
 
 

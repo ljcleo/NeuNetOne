@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch.nn.functional as F
 from torch import nn
 
@@ -41,7 +43,7 @@ class BottleNeck(nn.Module):
             ConvLayer(c_group, c_out, 1, relu=False)
         )
 
-        self.shortcut: ConvLayer | None = None if c_in == c_out else \
+        self.shortcut: Optional[ConvLayer] = None if c_in == c_out else \
             ConvLayer(c_in, c_out, 1, stride=stride, relu=False)
 
     def forward(self, x: FTType) -> FTType:

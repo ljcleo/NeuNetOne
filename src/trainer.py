@@ -1,6 +1,6 @@
 from logging import Logger
 from time import time
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch.nn import CrossEntropyLoss
@@ -16,11 +16,12 @@ from src.util import BatchType, FTType, check_inf_nan
 
 class Trainer:
     def __init__(self, model: ResNeXt, optim_params: dict[str, Any],
-                 sched_params: dict[str, Any] | None) -> None:
+                 sched_params: Optional[dict[str, Any]]) -> None:
         self.model: ResNeXt = model
         self.loss: CrossEntropyLoss = CrossEntropyLoss()
         self.optimizer: ASAM = ASAM(self.model.parameters(), **optim_params)
-        self.scheduler: CosineAnnealingWarmRestarts | None = None if sched_params['type'] is None \
+        self.scheduler: Optional[CosineAnnealingWarmRestarts] = \
+            None if sched_params['type'] is None \
             else CosineAnnealingWarmRestarts(self.optimizer, **sched_params['params'])
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader, test_loader: DataLoader,
