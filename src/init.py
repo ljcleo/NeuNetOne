@@ -8,16 +8,21 @@ import torch
 from torch import cuda
 from torch.backends import cudnn
 
+from src.util import LTType
 
-def sort_gpu() -> None:
+
+def sort_gpu() -> int:
     output: str = run('nvidia-smi -q -d Memory | grep -A5 GPU | grep Free', capture_output=True,
                       shell=True, encoding='utf8').stdout
+    free_memory: LTType = torch.LongTensor([int(line.strip().split()[2]) for line in
+                                            output.strip().split('\n')])
 
-    device_index: list[int] = torch.argsort(torch.LongTensor(
-        [int(line.strip().split()[2]) for line in output.strip().split('\n')]
-    ), descending=True).tolist()
-
+    device_index: list[int] = torch.argsort(free_memory, descending=True).tolist()
     environ.setdefault('CUDA_VISIBLE_DEVICES', ','.join(map(str, device_index)))
+
+    while len(device_index) > 0 and free_memory[device_index[-1]] < 1024:
+        device_index.pop()
+    return len(device_index)
 
 
 def fix_seed(seed_num: int, gpu: bool) -> None:
@@ -32,13 +37,14 @@ def fix_seed(seed_num: int, gpu: bool) -> None:
         cudnn.deterministic = True
 
 
-def init_device(seed_num: Optional[int] = None, gpu: bool = True) -> torch.device:
+def init_devices(seed_num: Optional[int] = None, gpu: bool = True) -> list[torch.device]:
     gpu &= cuda.is_available()
     if seed_num:
         fix_seed(seed_num, gpu)
 
     if gpu:
-        sort_gpu()
-        return torch.device('cuda')
+        n_device: int = sort_gpu()
+        return [torch.device(f'cuda:{i}')
+                for i in range(n_device)] if n_device > 0 else [torch.device('cpu')]
     else:
         return torch.device('cpu')

@@ -7,7 +7,7 @@ from typing import Any
 import torch
 from torchinfo import summary
 
-from src.init import init_device
+from src.init import init_devices
 from src.logger import make_logger
 from src.model import ResNeXt
 from src.util import FTType, get_config
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     config_name: str = args.config
     logger: Logger = make_logger(f'{config_name}-summary', root_path, True)
     logger.info('Initializing devices ...')
-    device: torch.device = init_device(19260817, args.gpu)
+    device: torch.device = init_devices(19260817, args.gpu)[0]
 
     logger.info(f'Loading model configuration from "{config_name}.yaml" ...')
     config: dict[str, Any] = get_config(root_path, config_name)

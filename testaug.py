@@ -6,7 +6,7 @@ import torch
 
 from src.augmentation import BatchAugmentation, augmentation_param
 from src.data import CIFAR100, make_display_loader
-from src.init import init_device
+from src.init import init_devices
 from src.logger import make_logger
 from src.util import BatchType, get_path
 from src.visualize import visualize_augmentation
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     parser: ArgumentParser = ArgumentParser(description='CIFAR-100 data augmentation test')
     parser.add_argument('-g', '--gpu', action='store_true', help='enable GPU support')
-    device: torch.device = init_device(19260817, parser.parse_args().gpu)
+    device: torch.device = init_devices(19260817, parser.parse_args().gpu)[0]
 
     logger: Logger = make_logger('augmentation', root_path, True, direct=True)
     logger.info('Start visualizing data augmentation samples ...')
