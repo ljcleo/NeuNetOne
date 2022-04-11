@@ -33,7 +33,6 @@ def train_all_models(config: dict[str, Any], device: torch.device, name: str,
 
     for method in config['augmentation']:
         model_start: float = time()
-        cut, mix = augmentation_param[method]
         new_name: str = f'{name}-{method}'
         test_loss: float
         test_acc: float
@@ -45,7 +44,7 @@ def train_all_models(config: dict[str, Any], device: torch.device, name: str,
         )
 
         result.append((new_name, test_loss, test_acc))
-        logger.info(f'Cut: {cut} Mix: {mix} Test Loss: {test_loss:.4f} ' +
+        logger.info(f'Augmentation Method: {method} Test Loss: {test_loss:.4f} ' +
                     f'Test Accuracy: {test_acc:.4f} Elapsed Time: {time() - model_start:.2f}s')
 
     logger.info(f'Finished training all models. Elapsed Time: {time() - total_start:.2f}s')
