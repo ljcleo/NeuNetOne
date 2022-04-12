@@ -17,11 +17,9 @@ data:
   valid_sec: 0.1
   batch_size: 128
 optimizer:
-  type: asam
+  type: sgd
   params:
     lr: 0.1
-    rho: 1
-    eta: 0.01
     weight_decay: 0.0005
 scheduler:
   type: cosine
@@ -33,4 +31,4 @@ augmentation:
   - mixup
   - cutout
   - cutmix
-max_epoch: 3
+max_epoch: 400

@@ -17,10 +17,12 @@ data:
   valid_sec: 0.1
   batch_size: 128
 optimizer:
-  lr: 0.1
-  rho: 1
-  eta: 0.01
-  weight_decay: 0.0005
+  type: asam
+  params:
+    lr: 0.1
+    rho: 1
+    eta: 0.01
+    weight_decay: 0.0005
 scheduler:
   type: cosine
   params:

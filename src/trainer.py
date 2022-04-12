@@ -1,9 +1,10 @@
 from logging import Logger
 from time import time
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
+from torch.optim.sgd import SGD
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -16,11 +17,15 @@ from src.util import BatchType, FTType, check_inf_nan
 
 class Trainer:
     def __init__(self, model: ResNeXt, optim_params: dict[str, Any],
-                 sched_params: Optional[dict[str, Any]]) -> None:
+                 sched_params: dict[str, Any]) -> None:
         self.model: ResNeXt = model
-        self.optimizer: ASAM = ASAM(self.model.parameters(), **optim_params)
-        self.scheduler: Optional[CosineAnnealingWarmRestarts] = \
-            None if sched_params['type'] is None \
+
+        self.optimizer: Union[ASAM, SGD] = (
+            ASAM if optim_params['type'] == 'asam' else SGD
+        )(self.model.parameters(), **optim_params['params'])
+
+        self.scheduler: Optional[CosineAnnealingWarmRestarts] = None \
+            if sched_params['type'] is None \
             else CosineAnnealingWarmRestarts(self.optimizer, **sched_params['params'])
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader, test_loader: DataLoader,
@@ -61,7 +66,6 @@ class Trainer:
             logger.info(f'Model training terminated. Elapsed time: {time() - train_start:.2f}s')
             return float('nan'), float('nan')
         except Exception as e:
-            logger.error(e, exc_info=False)
             logger.info(f'Model training terminated. Elapsed time: {time() - train_start:.2f}s')
             raise
 
@@ -101,9 +105,13 @@ class Trainer:
                 raise ValueError(f'found inf or nan after loss calculation: {check_inf_nan(loss)}')
 
             loss.backward()
-            self.optimizer.step_1(zero_grad=True)
-            self._loss(self.model.forward(images), labels).backward()
-            self.optimizer.step_2(zero_grad=True)
+
+            if isinstance(self.optimizer, ASAM):
+                self.optimizer.step_1(zero_grad=True)
+                self._loss(self.model.forward(images), labels).backward()
+                self.optimizer.step_2(zero_grad=True)
+            else:
+                self.optimizer.step()
 
             index += 1
             cur_total_iter += 1

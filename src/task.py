@@ -41,7 +41,7 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
                     ), callback=lambda x: logger.info(
                         f'Augmentation Method: {x[0]} Test Loss: {x[1]:.4f} ' +
                         f'Test Accuracy: {x[2]:.4f} Elapsed Time: {x[3]:.2f}s'
-                    ))
+                    ), error_callback=lambda e: logger.error(f'Training Failed: {e}'))
 
                 pool.close()
                 pool.join()
@@ -49,7 +49,8 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
             offset += max_parallel
 
         result: list[tuple[str, float, float, float]] = [
-            (method, ) + result_dict[method] for method in augmentation_methods
+            (method, ) + result_dict.get(method, (float('nan'), float('nan'), float('nan')))
+            for method in augmentation_methods
         ]
 
     logger.info(f'Finished training all models. Elapsed Time: {time() - total_start:.2f}s')
@@ -59,27 +60,33 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
 def train_model(augmentation: BatchAugmentation, config: dict[str, Any], device: torch.device,
                 result_dict: dict[str, tuple[float, float, float]], name: str,
                 root_path: Path) -> tuple[str, float, float, float]:
-    process_start: float = time()
     logger: Logger = make_logger(name, root_path, False)
-    writer: SummaryWriter = make_tensorboard(name, root_path)
     logger.info('Loading CIFAR-100 dataset ...')
-
-    train_loader: DataLoader
-    valid_loader: DataLoader
-    test_loader: DataLoader
-    train_loader, valid_loader, test_loader = make_loaders(get_path(root_path, 'data'), device,
-                                                           **config['data'])
-
-    logger.info('Creating model ...')
-    model: ResNeXt = ResNeXt(3, 100, config['stages']).to(device)
-    trainer: Trainer = Trainer(model, config['optimizer'], config['scheduler'])
-
-    train_result: tuple[float, float] = trainer.train(
-        train_loader, valid_loader, test_loader, augmentation, config['max_epoch'], logger, writer
-    )
-
-    torch.save(model.state_dict, get_path(root_path, 'model', name) / f'{name}.pt')
-    result: tuple[float, float, float] = train_result + (time() - process_start, )
     method: str = name.split('-')[-1]
-    result_dict[method] = result
-    return (method, ) + result
+
+    try:
+        process_start: float = time()
+        writer: SummaryWriter = make_tensorboard(name, root_path)
+
+        train_loader: DataLoader
+        valid_loader: DataLoader
+        test_loader: DataLoader
+        train_loader, valid_loader, test_loader = make_loaders(get_path(root_path, 'data'), device,
+                                                            **config['data'])
+
+        logger.info('Creating model ...')
+        model: ResNeXt = ResNeXt(3, 100, config['stages']).to(device)
+        trainer: Trainer = Trainer(model, config['optimizer'], config['scheduler'])
+
+        train_result: tuple[float, float] = trainer.train(
+            train_loader, valid_loader, test_loader, augmentation,
+            config['max_epoch'], logger, writer
+        )
+
+        torch.save(model.state_dict, get_path(root_path, 'model', name) / f'{name}.pt')
+        result: tuple[float, float, float] = train_result + (time() - process_start, )
+        result_dict[method] = result
+        return (method, ) + result
+    except Exception as e:
+        logger.error(e, exc_info=True, stack_info=True)
+        raise
