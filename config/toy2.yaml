@@ -9,7 +9,7 @@ stages:
     c_mid: 8
     c_out: 128
 data:
-  data_sec: 0.05
+  data_sec: 0.1
   valid_sec: 0.1
   batch_size: 64
 optimizer:
@@ -27,4 +27,4 @@ augmentation:
   - mixup
   - cutout
   - cutmix
-max_epoch: 1
+max_epoch: 3
