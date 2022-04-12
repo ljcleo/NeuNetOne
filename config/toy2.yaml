@@ -11,7 +11,8 @@ stages:
 data:
   data_sec: 0.1
   valid_sec: 0.1
-  batch_size: 64
+  batch_size: 16
+  ten_crop: true
 optimizer:
   type: sgd
   params:

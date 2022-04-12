@@ -1,11 +1,12 @@
 from logging import Logger
 from time import time
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type
 
 import torch
 import torch.nn.functional as F
+from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import _LRScheduler, CosineAnnealingWarmRestarts
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -15,18 +16,19 @@ from src.optimizer import ASAM
 from src.util import BatchType, FTType, check_inf_nan
 
 
+optimizer_dict: dict[str, Type[Optimizer]] = {'sgd': SGD, 'asam': ASAM}
+scheduler_dict: dict[str, Type[_LRScheduler]] = {'cosine': CosineAnnealingWarmRestarts}
+
+
 class Trainer:
     def __init__(self, model: ResNeXt, optim_params: dict[str, Any],
                  sched_params: dict[str, Any]) -> None:
         self.model: ResNeXt = model
+        self.optimizer: Optimizer = optimizer_dict[optim_params['type']](self.model.parameters(),
+                                                                         **optim_params['params'])
 
-        self.optimizer: Union[ASAM, SGD] = (
-            ASAM if optim_params['type'] == 'asam' else SGD
-        )(self.model.parameters(), **optim_params['params'])
-
-        self.scheduler: Optional[CosineAnnealingWarmRestarts] = None \
-            if sched_params['type'] is None \
-            else CosineAnnealingWarmRestarts(self.optimizer, **sched_params['params'])
+        self.scheduler: Optional[_LRScheduler] = None if sched_params['type'] is None \
+            else scheduler_dict[sched_params['type']](self.optimizer, **sched_params['params'])
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader, test_loader: DataLoader,
               augmentation: BatchAugmentation, max_epoch: int,
@@ -143,8 +145,8 @@ class Trainer:
             labels: FTType
 
             for images, labels in loader:
-                raw_pred: FTType = self.model.forward(images.view(-1, 3, 32, 32))
-                all_pred.append(raw_pred.reshape(10, labels.size(0), -1).mean(dim=0))
+                raw_pred: FTType = self.model.forward(images.flatten(end_dim=-4))
+                all_pred.append(raw_pred.reshape(-1, labels.size(0), labels.size(1)).mean(dim=0))
                 all_label.append(labels)
 
             cat_pred: FTType = torch.cat(all_pred)

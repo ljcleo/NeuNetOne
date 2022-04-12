@@ -87,6 +87,6 @@ def train_model(augmentation: BatchAugmentation, config: dict[str, Any], device:
         result: tuple[float, float, float] = train_result + (time() - process_start, )
         result_dict[method] = result
         return (method, ) + result
-    except Exception as e:
-        logger.error(e, exc_info=True, stack_info=True)
+    except Exception:
+        logger.error('Training failed!', exc_info=True, stack_info=True)
         raise

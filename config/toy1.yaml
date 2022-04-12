@@ -12,6 +12,7 @@ data:
   data_sec: 0.1
   valid_sec: 0.1
   batch_size: 64
+  ten_crop: false
 optimizer:
   type: asam
   params:

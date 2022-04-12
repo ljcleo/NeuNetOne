@@ -16,6 +16,7 @@ data:
   data_sec: 1
   valid_sec: 0.1
   batch_size: 128
+  ten_crop: true
 optimizer:
   type: asam
   params:
@@ -30,4 +31,7 @@ scheduler:
     T_mult: 2
 augmentation:
   - baseline
-max_epoch: 10
+  - mixup
+  - cutout
+  - cutmix
+max_epoch: 400

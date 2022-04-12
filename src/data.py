@@ -1,6 +1,6 @@
 from pathlib import Path
 from pickle import load
-from typing import Any
+from typing import Any, Callable
 
 import torch
 import torchvision.transforms as tf
@@ -50,12 +50,17 @@ def train_collate(batch: list[BatchType]) -> BatchType:
     return train_transform(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
 
 
-def test_collate(batch: list[BatchType]) -> BatchType:
+def test_one_collate(batch: list[BatchType]) -> BatchType:
+    return normalize(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
+
+
+def test_ten_collate(batch: list[BatchType]) -> BatchType:
     return test_transform(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
 
 
 def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_sec: float = 0.1,
-                 batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
+                 batch_size: int = 64,
+                 ten_crop: bool = False) -> tuple[DataLoader, DataLoader, DataLoader]:
     raw_train_set: CIFAR100 = CIFAR100(path, True, data_sec, device)
     test_set: CIFAR100 = CIFAR100(path, False, data_sec, device)
 
@@ -64,6 +69,9 @@ def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_se
     train_set: Dataset
     valid_set: Dataset
     train_set, valid_set = random_split(raw_train_set, [train_size, valid_size])
+
+    test_collate: Callable[[list[BatchType]], BatchType] = \
+        test_ten_collate if ten_crop else test_one_collate
 
     return tuple(DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
                  for dataset, shuffle, collate_fn, in ((train_set, True, train_collate),

@@ -35,8 +35,8 @@ if __name__ == '__main__':
         config, devices, f'{config_name}-{config["name"]}', root_path
     )
 
-    with (get_path(root_path, 'out', config_name) / f'{config_name}.csv').open('w', encoding='utf8',
-                                                                               newline='') as f:
+    with (get_path(root_path, 'out') / f'{config_name}.csv').open('w', encoding='utf8',
+                                                                  newline='') as f:
         csv_writer = writer(f)
         csv_writer.writerow(('name', 'optimizer', 'scheduler', 'batch_size',
                              'best_lr', 'best_l2', 'best_hidden', 'test_acc'))
