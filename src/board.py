@@ -17,6 +17,6 @@ def cleanup(path: Path) -> None:
 
 
 def make_tensorboard(name: str, root_path: Path) -> SummaryWriter:
-    writer_path: Path = get_path(root_path, 'log', name) / 'tensorboard'
+    writer_path: Path = get_path(root_path, 'log', name) / name
     cleanup(writer_path)
     return SummaryWriter(writer_path)
