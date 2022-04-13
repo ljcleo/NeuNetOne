@@ -16,7 +16,6 @@ data:
   data_sec: 1
   valid_sec: 0.1
   batch_size: 128
-  ten_crop: false
 optimizer:
   type: sgd
   params:

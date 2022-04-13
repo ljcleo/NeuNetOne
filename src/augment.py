@@ -6,7 +6,7 @@ from torch.distributions.uniform import Uniform
 from src.util import BatchType, FTType, LTType
 
 
-augmentation_param: dict[str, tuple[int, int]] = {
+augmentation_params: dict[str, tuple[bool, bool]] = {
     'baseline': (False, False),
     'mixup': (False, True),
     'cutout': (True, False),

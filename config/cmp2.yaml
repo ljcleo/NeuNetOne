@@ -16,7 +16,6 @@ data:
   data_sec: 1
   valid_sec: 0.1
   batch_size: 128
-  ten_crop: true
 optimizer:
   type: asam
   params:
@@ -25,10 +24,13 @@ optimizer:
     eta: 0.01
     weight_decay: 0.0005
 scheduler:
-  type: cosine
+  type: multistep
   params:
-    T_0: 10
-    T_mult: 2
+    milestones:
+      - 30
+      - 60
+      - 100
+    gamma: 0.1
 augmentation:
   - baseline
   - mixup

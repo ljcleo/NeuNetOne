@@ -11,18 +11,18 @@ stages:
 data:
   data_sec: 0.1
   valid_sec: 0.1
-  batch_size: 16
-  ten_crop: true
+  batch_size: 64
 optimizer:
   type: sgd
   params:
     lr: 0.1
     weight_decay: 0.0005
 scheduler:
-  type: cosine
+  type: multistep
   params:
-    T_0: 1
-    T_mult: 2
+    milestones:
+      - 2
+    gamma: 0.1
 augmentation:
   - baseline
   - mixup

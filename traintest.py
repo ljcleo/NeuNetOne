@@ -9,9 +9,8 @@ import torch
 
 from src.init import init_devices
 from src.logger import make_logger
-from src.util import get_config, get_path
 from src.task import train_all_models
-
+from src.util import get_config, get_path
 
 if __name__ == '__main__':
     set_start_method('spawn')
@@ -31,15 +30,14 @@ if __name__ == '__main__':
     logger.info(f'Loading model configuration from "{config_name}.yaml" ...')
     config: dict[str, Any] = get_config(root_path, config_name)
 
-    compare_result: list[tuple[str, int, int]] = train_all_models(
+    compare_result: list[tuple[str, float, float, float]] = train_all_models(
         config, devices, f'{config_name}-{config["name"]}', root_path
     )
 
-    with (get_path(root_path, 'out') / f'{config_name}.csv').open('w', encoding='utf8',
-                                                                  newline='') as f:
+    with (get_path(root_path, 'out', config_name) /
+          f'{config_name}-main.csv').open('w', encoding='utf8', newline='') as f:
         csv_writer = writer(f)
-        csv_writer.writerow(('name', 'optimizer', 'scheduler', 'batch_size',
-                             'best_lr', 'best_l2', 'best_hidden', 'test_acc'))
+        csv_writer.writerow(('method', 'test_loss', 'test_acc', 'elapsed_time'))
         csv_writer.writerows(compare_result)
 
     logger.info('Finished writing results.')

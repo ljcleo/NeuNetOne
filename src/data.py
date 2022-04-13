@@ -1,6 +1,6 @@
 from pathlib import Path
 from pickle import load
-from typing import Any, Callable
+from typing import Any
 
 import torch
 import torchvision.transforms as tf
@@ -59,8 +59,7 @@ def test_ten_collate(batch: list[BatchType]) -> BatchType:
 
 
 def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_sec: float = 0.1,
-                 batch_size: int = 64,
-                 ten_crop: bool = False) -> tuple[DataLoader, DataLoader, DataLoader]:
+                 batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
     raw_train_set: CIFAR100 = CIFAR100(path, True, data_sec, device)
     test_set: CIFAR100 = CIFAR100(path, False, data_sec, device)
 
@@ -70,15 +69,16 @@ def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_se
     valid_set: Dataset
     train_set, valid_set = random_split(raw_train_set, [train_size, valid_size])
 
-    test_collate: Callable[[list[BatchType]], BatchType] = \
-        test_ten_collate if ten_crop else test_one_collate
-
     return tuple(DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
                  for dataset, shuffle, collate_fn, in ((train_set, True, train_collate),
-                                                       (valid_set, False, test_collate),
-                                                       (test_set, False, test_collate)))
+                                                       (valid_set, False, test_one_collate),
+                                                       (test_set, False, test_one_collate)))
 
 
-def make_display_loader(path: Path, train: bool, n_sample: int, device: torch.device) -> DataLoader:
-    dataset: CIFAR100 = CIFAR100(path, train, 0.1, device)
-    return DataLoader(dataset, batch_size=n_sample)
+def make_display_loader(path: Path, device: torch.device, train: bool, n_sample: int) -> DataLoader:
+    return DataLoader(CIFAR100(path, train, 0.1, device), batch_size=n_sample)
+
+
+def make_test_ten_loader(path: Path, device: torch.device, batch_size: int) -> DataLoader:
+    return DataLoader(CIFAR100(path, False, 1, device), batch_size=batch_size,
+                      collate_fn=test_ten_collate)

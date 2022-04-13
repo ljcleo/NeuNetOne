@@ -2,22 +2,25 @@ from logging import Logger
 from time import time
 from typing import Any, Optional, Type
 
-import torch
-import torch.nn.functional as F
+from torch.optim.lr_scheduler import (CosineAnnealingWarmRestarts, MultiStepLR,
+                                      _LRScheduler)
 from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
-from torch.optim.lr_scheduler import _LRScheduler, CosineAnnealingWarmRestarts
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from src.augmentation import BatchAugmentation
+from src.augment import BatchAugmentation
+from src.eval import evaluate_loss_acc, prob_ce
 from src.model import ResNeXt
 from src.optimizer import ASAM
 from src.util import BatchType, FTType, check_inf_nan
 
-
 optimizer_dict: dict[str, Type[Optimizer]] = {'sgd': SGD, 'asam': ASAM}
-scheduler_dict: dict[str, Type[_LRScheduler]] = {'cosine': CosineAnnealingWarmRestarts}
+
+scheduler_dict: dict[str, Type[_LRScheduler]] = {
+    'cosine': CosineAnnealingWarmRestarts,
+    'multistep': MultiStepLR
+}
 
 
 class Trainer:
@@ -46,7 +49,7 @@ class Trainer:
 
                 valid_loss: float
                 valid_acc: float
-                valid_loss, valid_acc = self._evaluate_loss_acc(valid_loader)
+                valid_loss, valid_acc = evaluate_loss_acc(self.model, valid_loader)
 
                 writer.add_scalars('Loss', {'Train': train_loss, 'Valid': valid_loss}, epoch)
                 writer.add_scalars('Accuracy', {'Valid': valid_acc}, epoch)
@@ -59,7 +62,7 @@ class Trainer:
 
             test_loss: float
             test_acc: float
-            test_loss, test_acc = self._evaluate_loss_acc(test_loader)
+            test_loss, test_acc = evaluate_loss_acc(self.model, test_loader)
 
             logger.info(f'Finished training model. Test Loss: {test_loss:.4f} ' +
                         f'Test Accuracy: {test_acc:.4f} Elapsed time: {time() - train_start:.2f}s')
@@ -102,7 +105,7 @@ class Trainer:
             if any(check_inf_nan(pred)):
                 raise ValueError(f'found inf or nan after prediction: {check_inf_nan(pred)}')
 
-            loss: FTType = self._loss(pred, labels)
+            loss: FTType = prob_ce(pred, labels)
             if any(check_inf_nan(loss)):
                 raise ValueError(f'found inf or nan after loss calculation: {check_inf_nan(loss)}')
 
@@ -110,7 +113,7 @@ class Trainer:
 
             if isinstance(self.optimizer, ASAM):
                 self.optimizer.step_1(zero_grad=True)
-                self._loss(self.model.forward(images), labels).backward()
+                prob_ce(self.model.forward(images), labels).backward()
                 self.optimizer.step_2(zero_grad=True)
             else:
                 self.optimizer.step()
@@ -135,28 +138,3 @@ class Trainer:
                 cur_elapsed_time = cur_total_loss = cur_total_iter = cur_total_count = 0
 
         return total_loss / total_count
-
-    def _evaluate_loss_acc(self, loader: DataLoader) -> tuple[float, float]:
-        with torch.no_grad():
-            self.model.eval()
-            all_pred: list[FTType] = []
-            all_label: list[FTType] = []
-            images: FTType
-            labels: FTType
-
-            for images, labels in loader:
-                raw_pred: FTType = self.model.forward(images.flatten(end_dim=-4))
-                all_pred.append(raw_pred.reshape(-1, labels.size(0), labels.size(1)).mean(dim=0))
-                all_label.append(labels)
-
-            cat_pred: FTType = torch.cat(all_pred)
-            cat_label: FTType = torch.cat(all_label)
-            loss: float = self._loss(cat_pred, cat_label).item()
-            acc: float = torch.sum(cat_pred.argmax(dim=1) ==
-                                   cat_label.argmax(dim=1)).item() / cat_label.size(0)
-
-        return loss, acc
-
-    @staticmethod
-    def _loss(pred: FTType, labels: FTType) -> FTType:
-        return -torch.sum(F.log_softmax(pred, dim=-1) * labels, dim=-1).mean()

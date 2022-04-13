@@ -8,7 +8,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from src.augmentation import BatchAugmentation, augmentation_param
+from src.augment import BatchAugmentation, augmentation_params
 from src.board import make_tensorboard
 from src.data import make_loaders
 from src.logger import make_logger
@@ -18,7 +18,7 @@ from src.util import get_path
 
 
 def train_all_models(config: dict[str, Any], devices: list[torch.device], name: str,
-                     root_path: Path) -> list[tuple[str, int, int]]:
+                     root_path: Path) -> list[tuple[str, float, float, float]]:
     total_start: float = time()
     logger: Logger = make_logger(name, root_path, True)
     logger.info('Start training models with different augmentation ...')
@@ -36,7 +36,7 @@ def train_all_models(config: dict[str, Any], devices: list[torch.device], name: 
                     logger.info(f'Launching training process for {method} ...')
 
                     pool.apply_async(train_model, (
-                        BatchAugmentation(*augmentation_param[method]), config,
+                        BatchAugmentation(*augmentation_params[method]), config,
                         devices[i % len(devices)], result_dict, f'{name}-{method}', root_path
                     ), callback=lambda x: logger.info(
                         f'Augmentation Method: {x[0]} Test Loss: {x[1]:.4f} ' +
@@ -83,7 +83,7 @@ def train_model(augmentation: BatchAugmentation, config: dict[str, Any], device:
             config['max_epoch'], logger, writer
         )
 
-        torch.save(model.state_dict, get_path(root_path, 'model', name) / f'{name}.pt')
+        torch.save(model.state_dict(), get_path(root_path, 'model', name) / f'{name}.pt')
         result: tuple[float, float, float] = train_result + (time() - process_start, )
         result_dict[method] = result
         return (method, ) + result

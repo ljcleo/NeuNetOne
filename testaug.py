@@ -4,7 +4,7 @@ from pathlib import Path
 
 import torch
 
-from src.augmentation import BatchAugmentation, augmentation_param
+from src.augment import BatchAugmentation, augmentation_params
 from src.data import CIFAR100, make_display_loader
 from src.init import init_devices
 from src.logger import make_logger
@@ -18,13 +18,13 @@ def visualize(root_path: Path, train: bool, device: torch.device, logger: Logger
     img_path: Path = get_path(root_path, 'img')
     batch: BatchType
 
-    for batch in make_display_loader(data_path, train, 16, device):
+    for batch in make_display_loader(data_path, device, train, 16):
         shuffled_batch: BatchType = BatchAugmentation.shuffle_batch(batch, True)
 
         visualize_augmentation([
             (method.capitalize(), BatchAugmentation(*param).forward(
                 batch, shuffled_batch=shuffled_batch, ratio_range=(0.4, 0.6)
-            )) for method, param in augmentation_param.items()
+            )) for method, param in augmentation_params.items()
         ], 3, CIFAR100.get_label_names(data_path), 'training', img_path)
 
         break
