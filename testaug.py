@@ -13,7 +13,9 @@ from src.visualize import visualize_augmentation
 
 
 def visualize(root_path: Path, train: bool, device: torch.device, logger: Logger) -> None:
-    logger.info(f'Visualizing {"training" if train else "test"} set ...')
+    name: str = 'training' if train else 'test'
+    logger.info(f'Visualizing {name} set ...')
+
     data_path: Path = get_path(root_path, 'data')
     img_path: Path = get_path(root_path, 'img')
     batch: BatchType
@@ -25,7 +27,7 @@ def visualize(root_path: Path, train: bool, device: torch.device, logger: Logger
             (method.capitalize(), BatchAugmentation(*param).forward(
                 batch, shuffled_batch=shuffled_batch, ratio_range=(0.4, 0.6)
             )) for method, param in augmentation_params.items()
-        ], 3, CIFAR100.get_label_names(data_path), 'training', img_path)
+        ], 3, CIFAR100.get_label_names(data_path), name, img_path)
 
         break
 
