@@ -7,7 +7,6 @@ from typing import Any
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from src.augment import augmentation_params
 from src.data import make_test_ten_loader
 from src.eval import evaluate_loss_acc
 from src.init import init_devices
@@ -38,7 +37,7 @@ if __name__ == '__main__':
 
     compare_result: list[tuple[str, float, float]] = []
 
-    for method in augmentation_params:
+    for method in config['augmentation']:
         logger.info(f'Loading model "{method}" ...')
         model: ResNeXt = ResNeXt(3, 100, config['stages'])
         model.load_state_dict(torch.load(get_path(root_path, 'model', config_name) /
