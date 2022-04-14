@@ -103,7 +103,7 @@ class Trainer:
 
             pred: FTType = self.model.forward(images)
             if any(check_inf_nan(pred)):
-                raise ValueError(f'found inf or nan after prediction: {check_inf_nan(pred)}')
+                raise ValueError(f'found inf or nan after forwarding: {check_inf_nan(pred)}')
 
             loss: FTType = prob_ce(pred, labels)
             if any(check_inf_nan(loss)):

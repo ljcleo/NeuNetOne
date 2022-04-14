@@ -27,13 +27,13 @@ scheduler:
   type: multistep
   params:
     milestones:
-      - 30
       - 60
-      - 100
+      - 120
+      - 180
     gamma: 0.1
 augmentation:
   - baseline
   - mixup
   - cutout
   - cutmix
-max_epoch: 400
+max_epoch: 200
