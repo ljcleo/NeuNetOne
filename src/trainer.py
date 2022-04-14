@@ -44,12 +44,12 @@ class Trainer:
                 epoch_start: float = time()
                 train_loss: float = self._train_epoch(train_loader, augmentation, logger)
 
-                if self.scheduler is not None:
-                    self.scheduler.step()
-
                 valid_loss: float
                 valid_acc: float
                 valid_loss, valid_acc = evaluate_loss_acc(self.model, valid_loader)
+
+                if self.scheduler is not None:
+                    self.scheduler.step()
 
                 writer.add_scalars('Loss', {'Train': train_loss, 'Valid': valid_loss}, epoch)
                 writer.add_scalars('Accuracy', {'Valid': valid_acc}, epoch)
