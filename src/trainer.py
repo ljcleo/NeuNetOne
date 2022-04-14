@@ -2,6 +2,7 @@ from logging import Logger
 from time import time
 from typing import Any, Optional, Type
 
+from torch import nn
 from torch.optim.lr_scheduler import (CosineAnnealingWarmRestarts, MultiStepLR,
                                       _LRScheduler)
 from torch.optim.optimizer import Optimizer
@@ -95,46 +96,67 @@ class Trainer:
             images: FTType
             labels: FTType
             iter_start: float = time()
-            self.optimizer.zero_grad()
+            loss_info: list[tuple[float, int]] = []
 
             images, labels = augmentation.forward(batch)
             if any(check_inf_nan(images)):
                 raise ValueError(f'found inf or nan after augmentation: {check_inf_nan(images)}')
 
-            pred: FTType = self.model.forward(images)
-            if any(check_inf_nan(pred)):
-                raise ValueError(f'found inf or nan after forwarding: {check_inf_nan(pred)}')
+            def closure() -> FTType:
+                self.optimizer.zero_grad()
 
-            loss: FTType = prob_ce(pred, labels)
-            if any(check_inf_nan(loss)):
-                raise ValueError(f'found inf or nan after loss calculation: {check_inf_nan(loss)}')
+                if len(loss_info) == 0:
+                    self._enable_running_stats()
+                else:
+                    self._disable_running_stats()
 
-            loss.backward()
+                pred: FTType = self.model.forward(images)
+                if any(check_inf_nan(pred)):
+                    raise ValueError(f'found inf or nan after forward: {check_inf_nan(pred)}')
 
-            if isinstance(self.optimizer, ASAM):
-                self.optimizer.step_1(zero_grad=True)
-                prob_ce(self.model.forward(images), labels).backward()
-                self.optimizer.step_2(zero_grad=True)
-            else:
-                self.optimizer.step()
+                loss: FTType = prob_ce(pred, labels)
+                if any(check_inf_nan(loss)):
+                    raise ValueError(f'found inf or nan after loss calc: {check_inf_nan(loss)}')
 
-            index += 1
+                if len(loss_info) == 0:
+                    batch_size: int = labels.size(0)
+                    loss_info.append((loss.item() * batch_size, batch_size))
+
+                loss.backward()
+                return loss
+
+            self.optimizer.step(closure)
             cur_total_iter += 1
-            batch_size: int = labels.size(0)
-            cur_total_count += batch_size
-            cur_total_loss += loss.item() * batch_size
+            cur_total_loss += loss_info[0][0]
+            cur_total_count += loss_info[0][1]
             cur_elapsed_time += (time() - iter_start) * 1000
 
-            if index in verbose:
-                progress: float = index / total_iter
+            if index + 1 in verbose:
+                progress: float = (index + 1) / total_iter
                 loss_mean: float = cur_total_loss / cur_total_count
                 time_mean: float = cur_elapsed_time / cur_total_iter
 
-                logger.info(f'Iteration: {index} Progress: {progress:.0%} Loss: {loss_mean:.4f} ' +
-                            f'Speed: {time_mean:.4f} ms/iter')
+                logger.info(f'Iteration: {index + 1} Progress: {progress:.0%} ' +
+                            f'Loss: {loss_mean:.4f} peed: {time_mean:.4f} ms/iter')
 
                 total_count += cur_total_count
                 total_loss += cur_total_loss
                 cur_elapsed_time = cur_total_loss = cur_total_iter = cur_total_count = 0
 
         return total_loss / total_count
+
+    def _disable_running_stats(self) -> None:
+        def _disable(module: nn.Module) -> None:
+            if isinstance(module, nn.BatchNorm2d) and not hasattr(module, "backup_momentum"):
+                module.backup_momentum = module.momentum
+                module.momentum = 0
+
+        self.model.apply(_disable)
+
+    def _enable_running_stats(self) -> None:
+        def _enable(module: nn.Module) -> None:
+            if isinstance(module, nn.BatchNorm2d) and hasattr(module, "backup_momentum"):
+                module.momentum = module.backup_momentum
+                del module.backup_momentum
+
+        self.model.apply(_enable)

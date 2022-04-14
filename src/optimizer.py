@@ -1,3 +1,4 @@
+from typing import Callable, Optional
 import torch
 from torch.optim import Optimizer
 from torch.optim.sgd import SGD
@@ -14,32 +15,44 @@ class ASAM(Optimizer):
         self.param_groups: list[dict] = self.base_optimizer.param_groups
 
     @torch.no_grad()
-    def step_1(self, zero_grad: bool = False) -> None:
+    def step(self, closure: Optional[Callable[[], float]] = None) -> None:
+        if closure is None:
+            raise RuntimeError('ASAM requires closure')
+
+        closure = torch.enable_grad()(closure)
+        closure()
+        self._step_1(zero_grad=True)
+        closure()
+        self._step_2()
+
+    @torch.no_grad()
+    def _step_1(self, zero_grad: bool = False) -> None:
         norm: FTType = self._t_grad_norm()
 
         for group in self.param_groups:
-            scale: FTType = group['rho'] / (norm + 1e-8)
+            scale: FTType = group['rho'] / (norm + 1e-12)
+            eta: float = group['eta']
             param: FTType
 
             for param in group['params']:
                 if param.grad is None:
                     continue
 
-                eps: FTType = self._apply_t2(param, param.grad) * scale.to(param)
+                self.state[param]['backup'] = param.data.clone()
+                eps: FTType = self._apply_t2(param, param.grad, eta) * scale.to(param)
                 param.add_(eps)
-                self.state[param]['eps'] = eps
 
         if zero_grad:
             self.zero_grad()
 
     @torch.no_grad()
-    def step_2(self, zero_grad: bool = False) -> None:
+    def _step_2(self, zero_grad: bool = False) -> None:
         for group in self.param_groups:
             param: FTType
 
             for param in group['params']:
                 if param.grad is not None:
-                    param.sub_(self.state[param]['eps'])
+                    param.data = self.state[param]['backup']
 
         self.base_optimizer.step()
         if zero_grad:
@@ -49,13 +62,13 @@ class ASAM(Optimizer):
         device: torch.device = self.param_groups[0]['params'][0].device
 
         return torch.norm(torch.stack([
-            self._apply_t(param, param.grad).norm(p=2).to(device) for group in self.param_groups
-            for param in group['params'] if param.grad is not None
+            self._apply_t(param, param.grad, group['eta']).norm(p=2).to(device)
+            for group in self.param_groups for param in group['params'] if param.grad is not None
         ]), p=2)
 
-    def _apply_t(self, param: FTType, x: FTType) -> FTType:
-        return (torch.abs(param) + self.param_groups[0]['eta']) * x
+    def _apply_t(self, param: FTType, x: FTType, eta: float) -> FTType:
+        return (torch.abs(param) + eta) * x
 
-    def _apply_t2(self, param: FTType, x: FTType) -> FTType:
-        op: FTType = torch.abs(param) + self.param_groups[0]['eta']
+    def _apply_t2(self, param: FTType, x: FTType, eta: float) -> FTType:
+        op: FTType = torch.abs(param) + eta
         return op * op * x
