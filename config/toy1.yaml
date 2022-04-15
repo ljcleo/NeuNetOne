@@ -10,6 +10,7 @@ stages:
     c_out: 128
 data:
   data_sec: 0.1
+  smoothing: 0
   valid_sec: 0.1
   batch_size: 64
 optimizer:

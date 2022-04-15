@@ -11,7 +11,8 @@ from src.util import BatchType, FTType
 
 
 class CIFAR100(Dataset):
-    def __init__(self, path: Path, train: bool, data_sec: float, device: torch.device) -> None:
+    def __init__(self, path: Path, train: bool, device: torch.device, data_sec: float = 1,
+                 smoothing: float = 0) -> None:
         super().__init__()
         with (path / ('train' if train else 'test')).open('rb') as f:
             data: dict[bytes, Any] = load(f, encoding='bytes')
@@ -19,8 +20,10 @@ class CIFAR100(Dataset):
         self._images: FTType = torch.tensor(data[b'data'], device=device).view(-1, 3, 32, 32) / 255
         self._data_size: int = round(self._images.size(0) * data_sec)
         self._images = self._images[:self._data_size]
-        self._labels: FTType = torch.zeros((self._data_size, 100), device=device)
-        self._labels[list(range(self._data_size)), data[b'fine_labels'][:self._data_size]] = 1
+
+        self._labels: FTType = torch.ones((self._data_size, 100), device=device) * (smoothing / 100)
+        self._labels[list(range(self._data_size)),
+                     data[b'fine_labels'][:self._data_size]] = 1 - smoothing
 
     @staticmethod
     def get_label_names(path: Path) -> list[str]:
@@ -58,16 +61,22 @@ def test_ten_collate(batch: list[BatchType]) -> BatchType:
     return test_transform(torch.stack([x[0] for x in batch])), torch.stack([x[1] for x in batch])
 
 
-def make_loaders(path: Path, device: torch.device, data_sec: float = 1, valid_sec: float = 0.1,
+def make_loaders(path: Path, device: torch.device, data_sec: float = 1,
+                 smoothing: float = 1, valid_sec: float = 0.1,
                  batch_size: int = 64) -> tuple[DataLoader, DataLoader, DataLoader]:
-    raw_train_set: CIFAR100 = CIFAR100(path, True, data_sec, device)
-    test_set: CIFAR100 = CIFAR100(path, False, data_sec, device)
+    raw_train_set: CIFAR100 = CIFAR100(path, True, device, data_sec=data_sec, smoothing=smoothing)
+    test_set: CIFAR100 = CIFAR100(path, False, device, data_sec=data_sec, smoothing=smoothing)
 
     valid_size: int = round(len(raw_train_set) * valid_sec)
     train_size: int = len(raw_train_set) - valid_size
     train_set: Dataset
     valid_set: Dataset
-    train_set, valid_set = random_split(raw_train_set, [train_size, valid_size])
+
+    if valid_size == 0:
+        train_set = raw_train_set
+        valid_set = test_set
+    else:
+        train_set, valid_set = random_split(raw_train_set, [train_size, valid_size])
 
     return tuple(DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
                  for dataset, shuffle, collate_fn, in ((train_set, True, train_collate),
