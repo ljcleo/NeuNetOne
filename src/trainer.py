@@ -137,7 +137,7 @@ class Trainer:
                 time_mean: float = cur_elapsed_time / cur_total_iter
 
                 logger.info(f'Iteration: {index + 1} Progress: {progress:.0%} ' +
-                            f'Loss: {loss_mean:.4f} peed: {time_mean:.4f} ms/iter')
+                            f'Loss: {loss_mean:.4f} Speed: {time_mean:.4f} ms/iter')
 
                 total_count += cur_total_count
                 total_loss += cur_total_loss
