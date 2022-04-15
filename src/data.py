@@ -85,9 +85,9 @@ def make_loaders(path: Path, device: torch.device, data_sec: float = 1,
 
 
 def make_display_loader(path: Path, device: torch.device, train: bool, n_sample: int) -> DataLoader:
-    return DataLoader(CIFAR100(path, train, 0.1, device), batch_size=n_sample)
+    return DataLoader(CIFAR100(path, train, device), batch_size=n_sample)
 
 
 def make_test_ten_loader(path: Path, device: torch.device, batch_size: int) -> DataLoader:
-    return DataLoader(CIFAR100(path, False, 1, device), batch_size=batch_size,
+    return DataLoader(CIFAR100(path, False, device), batch_size=batch_size,
                       collate_fn=test_ten_collate)
