@@ -12,13 +12,13 @@ from src.util import LTType
 
 
 def sort_gpu() -> int:
-    output: str = run('nvidia-smi -q -d Memory | grep -A5 GPU | grep Free', capture_output=True,
-                      shell=True, encoding='utf8').stdout
-    free_memory: LTType = torch.LongTensor([int(line.strip().split()[2]) for line in
-                                            output.strip().split('\n')])
+    output: list[str] = run(
+        'nvidia-smi -q -d Memory | grep -A5 GPU | grep Free',
+        capture_output=True, shell=True, encoding='utf8'
+    ).stdout.strip().split('\n')
 
+    free_memory: LTType = torch.LongTensor([int(line.strip().split()[2]) for line in output])
     device_index: list[int] = torch.argsort(free_memory, descending=True).tolist()
-    environ.setdefault('CUDA_VISIBLE_DEVICES', ','.join(map(str, device_index)))
 
     while len(device_index) > 0 and free_memory[device_index[-1]] < 1024:
         device_index.pop()
