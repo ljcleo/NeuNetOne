@@ -31,7 +31,7 @@ A ResNeXt model for the [CIFAR-100 dataset](https://www.cs.toronto.edu/~kriz/cif
 
    This script will create three types of files. The training logs are stored in `log/config-name/`. The trained models are dumped into `model/config-name/model-name.pkl`. The summary results are written to `out/main.csv`, including test loss, test accuracy and training time under different data augmentation methods.
 
-   Trained models using preset configurations can be downloaded [here](https://drive.google.com/drive/folders/1yoZQwW7INrc1IqtHaqqp5nHKGw1ttsgl?usp=sharing). Just extract the archives and put the extracted folders into the `model` directory.
+   Trained models using preset configurations can be downloaded [here](https://drive.google.com/drive/folders/1JyAux4pSCsYahNlg6Ic6PmK6sXqRpGOc?usp=sharing). Just extract the archives and put the extracted folders into the `model` directory.
 
 3. Run `python testten.py` to evaluate test loss and accuracy of trained models, using ten-cropped images instead of a single one. Use `-c [config]` to choose a specific model configuration, the default of which is "main". Results are written to `out/config-name-ten.csv`.
 
