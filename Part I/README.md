@@ -1,4 +1,4 @@
-# NeuNetOne
+# NeuNetOne -- Part I
 
 Neural Network &amp; Deep Learning Midtern Homework (Part I)
 
