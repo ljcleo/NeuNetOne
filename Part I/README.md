@@ -1,4 +1,4 @@
-# NeuNetOne -- Part I
+# NeuNetOne --- Part I
 
 Neural Network &amp; Deep Learning Midtern Homework (Part I)
 
@@ -88,7 +88,7 @@ max_epoch: 200            # Maximum training epochs
 ## Project Structure
 
 ```{plain}
-NeuNetOne
+Part I
 ├── config
 │   ├── main.yaml     # ResNeXt-29
 │   ├── cmp1.yaml     # ResNeXt-29, using SGD instead of ASAM
