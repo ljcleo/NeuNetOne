@@ -21,7 +21,7 @@ YOLO v3 model for object detection on VOC dataset.
 
 3. Run `python train.py --batch 16 --epochs 200 --data voc.yaml --weights yolov3.pt` to train models with pretrained weights. The results will be shown in  runs/train/exp
 
-4. Run `python val.py --data voc.yaml --weights (the place where you put your weights) --iou 0.65 --half --task test` to validate the model with the test dataset
+4. Run `python val.py --data voc.yaml --weights (the place where you put your weights) --iou 0.65 --half --task test` to validate the model with the test dataset. The results will be shown in  runs/val/exp
 
 
 
