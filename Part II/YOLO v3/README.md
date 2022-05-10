@@ -1,20 +1,10 @@
-# NeuNetOne --- Part I
+# NeuNetOne --- Part II YOLO v3
 
-Neural Network &amp; Deep Learning Midtern Homework (Part I)
+Neural Network &amp; Deep Learning Midtern Homework (Part II): YOLO v3
 
 ## Introduction
 
-A ResNeXt model for the [CIFAR-100 dataset](https://www.cs.toronto.edu/~kriz/cifar.html), written in Python 3 using PyTorch. Adapted SAM (ASAM) is used to optimize the model, and three different image data augmentation methods (Mixup, Cutout and Cutmix) are tested.
-
-## Requirements
-
-- Python >= 3.9
-- PyTorch
-- Tensorboard
-- pyyaml
-- requests (for automatic dataset download)
-- matplotlib (for augmentation visualization)
-- torchinfo (for model structure summary)
+YOLO v3 model for object detection on VOC dataset.
 
 ## Usage
 
